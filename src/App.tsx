@@ -113,6 +113,12 @@ export default function App() {
           case 'connection-status':
             setConnectionStatus(data);
             setIsLoading(false);
+
+            if (data.connected && data.mode === 'real') {
+              setMonitorLogs([]);
+              setActiveTab('monitor');
+            }
+
             // Refresh database layout upon switching connection
             if (data.connected) {
               triggerScan('*', '');
@@ -280,6 +286,10 @@ export default function App() {
   // REDIS BUSINESS TRIGGER ACTIONS
   const handleConnect = (config: RedisConnectionConfig) => {
     sendWsMessage('connect', config);
+  };
+
+  const handleDisconnect = () => {
+    sendWsMessage('disconnect');
   };
 
   const triggerScan = (pattern: string, typeFilter: string) => {
@@ -459,6 +469,7 @@ export default function App() {
           <ConnectionPanel
             status={connectionStatus}
             onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
             simulatorActive={simulatorActive}
             onToggleSimulator={handleToggleSimulator}
             isLoading={isLoading}

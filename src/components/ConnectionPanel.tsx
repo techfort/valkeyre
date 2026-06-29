@@ -5,6 +5,7 @@ import { Database, ShieldCheck, RefreshCw, Radio, Settings, AlertTriangle } from
 interface ConnectionPanelProps {
   status: ConnectionStatus;
   onConnect: (config: RedisConnectionConfig) => void;
+  onDisconnect: () => void;
   simulatorActive: boolean;
   onToggleSimulator: (active: boolean) => void;
   isLoading: boolean;
@@ -13,6 +14,7 @@ interface ConnectionPanelProps {
 export default function ConnectionPanel({
   status,
   onConnect,
+  onDisconnect,
   simulatorActive,
   onToggleSimulator,
   isLoading,
@@ -32,6 +34,8 @@ export default function ConnectionPanel({
       useMock,
     });
   };
+
+  const isConnectedReal = status.connected && status.mode === 'real';
 
   return (
     <div className="bg-[#121212] border border-neutral-800 rounded-xl shadow-md p-5 transition-all duration-200" id="connection-panel">
@@ -76,8 +80,28 @@ export default function ConnectionPanel({
         </div>
       )}
 
+      {isConnectedReal && (
+        <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-xs text-emerald-300">
+            <div className="font-semibold">Connected to real instance</div>
+            <div className="mt-1 text-emerald-400/80 font-mono">
+              {status.host}:{status.port} (db {status.db})
+            </div>
+          </div>
+
+          <button
+            onClick={onDisconnect}
+            disabled={isLoading}
+            className="text-xs font-semibold py-1.5 px-3 rounded-lg transition-all shadow-sm cursor-pointer bg-red-600 hover:bg-red-500 text-white border border-red-700 disabled:opacity-50"
+            id="btn-real-disconnect"
+          >
+            Disconnect
+          </button>
+        </div>
+      )}
+
       {/* Inputs */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
+      {!isConnectedReal && <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
         <div className="md:col-span-5">
           <label className="block text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1">Valkey / Redis Host</label>
           <input
@@ -119,10 +143,10 @@ export default function ConnectionPanel({
             Connect Real
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Advanced Toggle */}
-      <div className="mb-4">
+      {!isConnectedReal && <div className="mb-4">
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="text-xs text-neutral-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
@@ -161,12 +185,12 @@ export default function ConnectionPanel({
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
-      <div className="border-t border-neutral-800 my-4" />
+      {!isConnectedReal && <div className="border-t border-neutral-800 my-4" />}
 
       {/* Sandbox Connection & Activity Simulator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-amber-950/20 border border-amber-900/30 rounded-lg p-3.5">
+      {!isConnectedReal && <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-amber-950/20 border border-amber-900/30 rounded-lg p-3.5">
         <div className="flex items-start gap-2.5">
           <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
@@ -209,7 +233,7 @@ export default function ConnectionPanel({
             Use Sandbox
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

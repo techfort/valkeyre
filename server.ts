@@ -808,13 +808,41 @@ async function startServer() {
     }
   >();
 
+  let simulatorEnabled = true;
+
+  const hasMockClients = () => {
+    for (const client of wss.clients) {
+      const state = activeClients.get(client as WebSocket);
+      if (!state || !state.redis) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const refreshSimulatorState = () => {
+    if (simulatorEnabled && hasMockClients()) {
+      mockEngine.startSimulator();
+    } else {
+      mockEngine.stopSimulator();
+    }
+  };
+
+  const cleanupRealClient = (ws: WebSocket) => {
+    const clientState = activeClients.get(ws);
+    if (!clientState) return;
+    if (clientState.redis) clientState.redis.disconnect();
+    if (clientState.sub) clientState.sub.disconnect();
+    activeClients.delete(ws);
+  };
+
   // Prevent mock keyspace events from leaking into real Redis sessions.
   mockEngine.setBroadcastFilter((client) => {
     const state = activeClients.get(client);
     return !(state && state.redis);
   });
 
-  mockEngine.startSimulator(); // active by default for high visual engagement
+  refreshSimulatorState();
 
   // Helper to send message to a socket safely
   const sendToSocket = (ws: WebSocket, type: string, data: any) => {
@@ -848,11 +876,7 @@ async function startServer() {
             const { host, port, password, db, useMock } = payload;
 
             // Cleanup old connection if any
-            if (clientState) {
-              if (clientState.redis) clientState.redis.disconnect();
-              if (clientState.sub) clientState.sub.disconnect();
-              activeClients.delete(ws);
-            }
+            cleanupRealClient(ws);
 
             if (useMock) {
               sendToSocket(ws, 'connection-status', {
@@ -862,6 +886,7 @@ async function startServer() {
                 port: 6379,
                 db: 0,
               });
+              refreshSimulatorState();
               return;
             }
 
@@ -876,6 +901,7 @@ async function startServer() {
                 db: db || 0,
                 connectTimeout: 4000,
                 maxRetriesPerRequest: 1,
+                retryStrategy: () => null,
               });
 
               // Create a secondary client for subscriber actions (Keyspace notifications + PubSub)
@@ -886,7 +912,39 @@ async function startServer() {
                 db: db || 0,
                 connectTimeout: 4000,
                 maxRetriesPerRequest: 1,
+                retryStrategy: () => null,
               });
+
+              // Prevent unhandled ioredis error events and reflect connection loss in UI status.
+              let disconnected = false;
+              const handleRealDisconnect = (reason: string) => {
+                if (disconnected) return;
+                disconnected = true;
+
+                const state = activeClients.get(ws);
+                if (!state || state.redis !== redisClient) return;
+
+                cleanupRealClient(ws);
+                sendToSocket(ws, 'connection-status', {
+                  connected: false,
+                  mode: 'real',
+                  host,
+                  port,
+                  db,
+                  error: reason,
+                });
+                refreshSimulatorState();
+              };
+
+              redisClient.on('error', (err) => {
+                console.warn('Redis client error:', err?.message || err);
+              });
+              subClient.on('error', (err) => {
+                console.warn('Redis subscriber error:', err?.message || err);
+              });
+
+              redisClient.on('end', () => handleRealDisconnect('Connection to Redis/Valkey was closed'));
+              subClient.on('end', () => handleRealDisconnect('Connection to Redis/Valkey was closed'));
 
               await new Promise<void>((resolve, reject) => {
                 let resolved = false;
@@ -985,6 +1043,7 @@ async function startServer() {
                 port,
                 db,
               });
+              refreshSimulatorState();
             } catch (err: any) {
               console.warn('Redis connection failed:', err.message || err);
               sendToSocket(ws, 'connection-status', {
@@ -995,7 +1054,21 @@ async function startServer() {
                 db,
                 error: err.message || 'Connection refused or timed out',
               });
+              refreshSimulatorState();
             }
+            break;
+          }
+
+          case 'disconnect': {
+            cleanupRealClient(ws);
+            sendToSocket(ws, 'connection-status', {
+              connected: true,
+              mode: 'mock',
+              host: 'in-memory-sandbox',
+              port: 6379,
+              db: 0,
+            });
+            refreshSimulatorState();
             break;
           }
 
@@ -1403,14 +1476,14 @@ async function startServer() {
 
           case 'simulator-toggle': {
             const { active } = payload;
-            if (active) {
-              mockEngine.startSimulator();
+            simulatorEnabled = !!active;
+            if (simulatorEnabled) {
               console.log('Background activity simulation enabled');
             } else {
-              mockEngine.stopSimulator();
               console.log('Background activity simulation disabled');
             }
-            sendToSocket(ws, 'simulator-status', { active });
+            refreshSimulatorState();
+            sendToSocket(ws, 'simulator-status', { active: simulatorEnabled });
             break;
           }
         }
@@ -1423,12 +1496,8 @@ async function startServer() {
     ws.on('close', () => {
       console.log('WS Connection closed');
       mockEngine.unsubscribeAll(ws);
-      const clientState = activeClients.get(ws);
-      if (clientState) {
-        if (clientState.redis) clientState.redis.disconnect();
-        if (clientState.sub) clientState.sub.disconnect();
-        activeClients.delete(ws);
-      }
+      cleanupRealClient(ws);
+      refreshSimulatorState();
     });
   });
 
