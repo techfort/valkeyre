@@ -1,0 +1,6 @@
+{
+  "name": "ValKeyRe",
+  "description": "A modern real-time Valkey and Redis keys viewer, stream monitor, and query editor built with TypeScript, React, Tailwind, and WebSockets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,11 @@
+# mise configuration file
+# For more information: https://mise.jdx.dev/
+
+[tools]
+node = "22"
+
+[tasks]
+dev = "npm run dev"
+build = "npm run build"
+start = "npm run start"
+lint = "npm run lint"
