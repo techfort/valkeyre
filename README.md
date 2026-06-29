@@ -1,12 +1,6 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
-# Run and deploy your AI Studio app
+# Run and deploy ValKeyRe
 
 This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/6fed21fb-cbb8-4dfd-9e4b-6e6cc12c7bd9
 
 ## Run Locally
 
@@ -15,6 +9,19 @@ View your app in AI Studio: https://ai.studio/apps/6fed21fb-cbb8-4dfd-9e4b-6e6cc
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the required API key in [.env.local](.env.local)
 3. Run the app:
    `npm run dev`
+
+## Run In Docker (via mise tasks)
+
+1. Build the container image:
+   `mise run container-build`
+2. Launch the container:
+   `mise run container-run`
+3. Open the app:
+   `http://localhost:3000`
+
+To connect to a Redis/Valkey instance running on your host machine from inside the container, use:
+- Host: `host.docker.internal`
+- Port: your Redis/Valkey port (commonly `6379`)

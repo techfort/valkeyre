@@ -52,6 +52,7 @@ class MockRedisEngine {
   private pubsubSubscribers: Map<string, Set<WebSocket>> = new Map();
   private backgroundInterval: NodeJS.Timeout | null = null;
   private wsServer: WebSocketServer | null = null;
+  private shouldBroadcastToClient: ((ws: WebSocket) => boolean) | null = null;
 
   constructor() {
     this.resetToDefaults();
@@ -59,6 +60,10 @@ class MockRedisEngine {
 
   setWsServer(wsServer: WebSocketServer) {
     this.wsServer = wsServer;
+  }
+
+  setBroadcastFilter(filter: (ws: WebSocket) => boolean) {
+    this.shouldBroadcastToClient = filter;
   }
 
   resetToDefaults() {
@@ -344,6 +349,9 @@ class MockRedisEngine {
     });
 
     for (const client of this.wsServer.clients) {
+      if (this.shouldBroadcastToClient && !this.shouldBroadcastToClient(client as WebSocket)) {
+        continue;
+      }
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload);
       }
@@ -789,7 +797,6 @@ async function startServer() {
   // Instantiate the mock engine
   const mockEngine = new MockRedisEngine();
   mockEngine.setWsServer(wss);
-  mockEngine.startSimulator(); // active by default for high visual engagement
 
   // Track active real Redis connections per WebSocket client, as well as subscriber clients
   const activeClients = new Map<
@@ -800,6 +807,14 @@ async function startServer() {
       config: { host: string; port: number; password?: string; db: number };
     }
   >();
+
+  // Prevent mock keyspace events from leaking into real Redis sessions.
+  mockEngine.setBroadcastFilter((client) => {
+    const state = activeClients.get(client);
+    return !(state && state.redis);
+  });
+
+  mockEngine.startSimulator(); // active by default for high visual engagement
 
   // Helper to send message to a socket safely
   const sendToSocket = (ws: WebSocket, type: string, data: any) => {

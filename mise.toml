@@ -2,10 +2,14 @@
 # For more information: https://mise.jdx.dev/
 
 [tools]
-node = "22"
+node = "24"
 
 [tasks]
 dev = "npm run dev"
 build = "npm run build"
 start = "npm run start"
 lint = "npm run lint"
+container-build = "docker build -t valkeyre:local ."
+valkeyre = "docker run --rm -it --name valkeyre -p 3000:3000 --add-host=host.docker.internal:host-gateway valkeyre:local"
+valkeyre-detached = "docker run -d --rm --name valkeyre -p 3000:3000 --add-host=host.docker.internal:host-gateway valkeyre:local"
+valkeyre-stop = "docker stop valkeyre"
