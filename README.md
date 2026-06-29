@@ -1,5 +1,7 @@
 # Run and deploy ValKeyRe
 
+![ValKeyRe screenshot](assets/screenshot.png)
+
 This contains everything you need to run your app locally.
 
 ## Run Locally

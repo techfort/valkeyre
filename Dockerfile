@@ -1,4 +1,4 @@
-# Production Dockerfile for RedisVue Modern
+# Production Dockerfile for ValKeyRe
 FROM node:24-alpine
 
 # Set working directory

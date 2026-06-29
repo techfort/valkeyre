@@ -852,7 +852,7 @@ async function startServer() {
   };
 
   wss.on('connection', (ws) => {
-    console.log('Client connected to real-time RedisVue WebSocket');
+    console.log('Client connected to real-time ValKeyRe WebSocket');
 
     // Default connection status is mock sandbox mode
     sendToSocket(ws, 'connection-status', {
@@ -1523,7 +1523,7 @@ async function startServer() {
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
-    console.log(` RedisVue Modern server listening on port ${PORT}`);
+    console.log(` ValKeyRe Modern server listening on port ${PORT}`);
     console.log(` Running in mode: ${process.env.NODE_ENV || 'development'}`);
     console.log(` Connect your local client or browser to:`);
     console.log(` http://localhost:${PORT}`);
@@ -1532,6 +1532,6 @@ async function startServer() {
 }
 
 startServer().catch((err) => {
-  console.error('Fatal initialization error starting RedisVue server:', err);
+  console.error('Fatal initialization error starting ValKeyRe server:', err);
   process.exit(1);
 });

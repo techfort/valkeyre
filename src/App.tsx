@@ -448,7 +448,7 @@ export default function App() {
           {/* Github / Credits link */}
           <div className="hidden sm:flex items-center gap-2.5">
             <a
-              href="https://github.com/techfort/redisvue"
+              href="https://github.com/techfort/valkeyre"
               target="_blank"
               rel="noopener noreferrer"
               className="text-neutral-400 hover:text-red-400 transition-colors flex items-center gap-1 text-xs font-medium border border-neutral-800 hover:border-red-900/50 rounded-lg px-2.5 py-1.5 hover:bg-red-950/20"
